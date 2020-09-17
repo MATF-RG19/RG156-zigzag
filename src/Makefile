@@ -1,10 +1,10 @@
 PROGRAM   = zig_zag
 CC        = gcc
 CFLAGS    = -g -Wall
-LDFLAGS   = -lGL -lGLU -lglut
+LDFLAGS   = -lGL -lGLU -lglut -lm
 
 $(PROGRAM): main.o
-	$(CC) -o $(PROGRAM) main.o $(LDFLAGS)
+	$(CC) -o $(PROGRAM) $< $(LDFLAGS)
 
 .PHONY: clean dist
 
