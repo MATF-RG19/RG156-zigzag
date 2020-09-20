@@ -3,8 +3,8 @@ CC        = gcc
 CFLAGS    = -g -Wall
 LDFLAGS   = -lGL -lGLU -lglut -lm
 
-$(PROGRAM): main.o
-	$(CC) -o $(PROGRAM) $< $(LDFLAGS)
+$(PROGRAM): main.o 
+	$(CC) -o $(PROGRAM) $^ $(LDFLAGS)
 
 .PHONY: clean dist
 

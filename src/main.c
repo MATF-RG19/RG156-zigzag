@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
+#include <math.h>
+#define TIMER_ID 0
 
 /* Struktura koja predstavlja jednu prepreku. */ 
 typedef struct
@@ -20,9 +22,10 @@ Prepreka prepreke_2[50];
 static int poz1;
 static int poz2;
 
-/* Identifikatori pocetka i kraja igrice. */ 
+/* Identifikatori pocetka i kraja igrice, kao i identifikator za restartovanje. */ 
 static int start = 0;
 static int end = 0;
+static int restart = 0;
 
 /* Pomocne vrednosti prilikom kretanja loptice. */
 static float ugao = 0;
@@ -55,15 +58,29 @@ static float duzina_staze = 100;
 static float x_coord = 0;
 static float y_coord = 0.75;
 static float z_coord = 5;
-float rotate_object = 0;
+
+/*Ugao za koji se rotira loptica. */
+float ugao_rotacije = 0;
+
+/* Tekuci skor.*/
+static int score = 0;
+
+/* Faktor ubrzanja loptice. */
+static float faktor_ubrzanja = 1.0001;
 
 /* Pomocne funkcije za iscrtavanje delova scene. */
 static void nacrtaj_ravan();
 static void nacrtaj_loptu();
 static void nacrtaj_prepreke(int tip);
 static void postavi_prepreke(int tip);
-static void postavi_prvu_ravan();
+static void postavi_prepreke_na_pocetku();
 
+/* Pomocne funkcije za ispitivanje preseka lopte sa nekom od prepreka. */
+static float rastojanje_lopta_prepreka();
+static void upit_preseka();
+
+/* Pomocna funkcija  za resetovanje parametara. */
+static void postavi_pocetne_vrednosti();
 
 int main(int argc, char **argv)
 {
@@ -82,7 +99,7 @@ int main(int argc, char **argv)
     glutKeyboardFunc(on_keyboard);
     glutReshapeFunc(on_reshape);
     glutKeyboardUpFunc(on_release);
-
+    
     /* Obavlja se OpenGL inicijalizacija. */
     glClearColor(0.75, 0.75, 0.75, 0);
     glEnable(GL_DEPTH_TEST);
@@ -151,7 +168,7 @@ static void on_display(void)
     
     /* Pocetno iscrtavanje prepreka na samom pocetku igre. */
     if (prva_prepreka){
-        postavi_prvu_ravan();
+        postavi_prepreke_na_pocetku();
         postavi_prepreke(2);
         prva_prepreka= 0;
     }
@@ -180,7 +197,7 @@ static void on_keyboard(unsigned char key, int x, int y){
             glutDisplayFunc(on_display);
             
             /* Funkcija koja translira loptu. */
-            glutTimerFunc(50, move_objects, 0);
+            glutTimerFunc(50,move_objects, TIMER_ID);
             
             /* Identifikator da je startovana igrica. */
             start = 1;
@@ -198,16 +215,21 @@ static void on_keyboard(unsigned char key, int x, int y){
         udesno = 1;
         glutPostRedisplay();
         break;
-        /*
+        /* Pauziranje igre. */
+    case 'p':
+    case 'P':
+        start = 0;
+        break;
+        /* Restartovanje igrice. */
     case 'r':
     case 'R':
-        Restartuj igricu 
-        ** Ovo moram  da popravim... 
+        restart  = 1;
         glutPostRedisplay();
         break;
-        */
+       
     }
 }
+
 
 /* Azuriranje vec realizovane vrednosti unete sa tastature. */
 static void on_release(unsigned char key, int x, int y){
@@ -275,6 +297,7 @@ static void nacrtaj_loptu(){
     /* Osvetljenje za loptu. */
     GLfloat material_diffuse1[] = {0.5, 0.5, 1, 1};
     glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, material_diffuse1);
+    
     glPushMatrix();
     glTranslatef(x_coord, y_coord + 1.6, z_coord);
     glutSolidSphere(0.5, 100, 100);
@@ -283,8 +306,23 @@ static void nacrtaj_loptu(){
 
 /*Pomeranje objekta se vrsi tako sto ne pomeramo objekat vec samu stazu 
  * sa preprekama ka objektu. */
-static void move_objects()
+static void move_objects(int id)
 {
+    
+    if(id != TIMER_ID)
+    {
+        return;
+    }
+    
+    if(restart)
+    {
+        postavi_pocetne_vrednosti();
+        glutPostRedisplay();
+    }
+    else
+    {
+    /* Ubrzavam lopticu za dati faktor. */
+    brzina_lopte *= faktor_ubrzanja;
     
     /* Pomeram koordinate obe ravni ka objektu. */
        z_plane -= brzina_lopte;
@@ -323,20 +361,25 @@ static void move_objects()
     }
     
     /* Rotiranje loptice. */
-    rotate_object += 30;
-    if (rotate_object >= 360)
-        rotate_object += -360;
-
+    ugao_rotacije += 30;
+    if (ugao_rotacije >= 360)
+        ugao_rotacije += -360;
+    
+    /* Svaki put ispitujem da li je doslo  do kolizije. */
+    upit_preseka();
+    
     /* Ponovo se iscrtava ekran. */
     glutPostRedisplay();
     if (start && !end)
         glutTimerFunc(50, move_objects, 0);
+}
 }
 
 /*Iscrtavanje prepreka. */
 static void nacrtaj_prepreke(int tip)
 {
     int broj_prepreka = 0;
+    
     if (tip == 1)
         broj_prepreka = poz1;
     else
@@ -349,10 +392,11 @@ static void nacrtaj_prepreke(int tip)
             p = prepreke_1[i];
         else
             p = prepreke_2[i];
-
-        GLfloat material_ambient[] = {0.2125, 0.1275, 0.054, 1.0};
-        GLfloat material_diffuse[] = {0.714, 0.4284, 0.18144, 1.0};
-        GLfloat material_specular[] = {0.393548, 0.271906, 0.166721, 1.0};
+        
+        /* Osvetljenje za preprke. */
+        GLfloat material_ambient[] = {0.22, 0.15, 0.05, 1.0};
+        GLfloat material_diffuse[] = {0.7, 0.45, 0.2, 1.0};
+        GLfloat material_specular[] = {0.4, 0.3, 0.15, 1.0};
         GLfloat shininess = 0.15;
 
         glMaterialfv(GL_FRONT, GL_AMBIENT, material_ambient);
@@ -393,23 +437,23 @@ static void postavi_prepreke(int tip)
      * Po redu cu imati max 4 prepreke. */
     for (int i = 0; i < 10; i++)
     {
-        int num = (int)rand() % 5;
-        if (num == 0)
-            num = 2;
+        int broj_prepreka = (int)rand() % 5;
+        if (broj_prepreka == 0)
+            broj_prepreka = 2;
         int dijamant = 0;
         /* Niz koji govori koje su slobodne pozicije u jednom redu prepreka.*/
-        int free_positions[] = {1, 1, 1, 1, 1};
-        for (int j = 0; j < num; j++)
+        int slobodne_pozicije[] = {1, 1, 1, 1, 1};
+        for (int j = 0; j < broj_prepreka; j++)
         {
             Prepreka p;
             
             /* Niz koji oznacava x koordinate pozicija koje odgovaraju slobodnim pozicijama
-             * u nizu free_positions. */
-            int positions[] = {4, 2, 0, -2, -4};
+             * u nizu slobodne_pozicije. */
+            int x_koordinate_slobodnih_pozicija[] = {4, 2, 0, -2, -4};
             int pos = (int)rand() % 5;
-            if (free_positions[pos] == 1)
+            if (slobodne_pozicije[pos] == 1)
             {
-                free_positions[pos] = 0;
+                slobodne_pozicije[pos] = 0;
                 
                 /* Nasumicno biramo da li ce se crtati kocka ili dijamant sa podjednakom verovatnocom. */
                 int t = (int)rand() % 2;
@@ -425,7 +469,7 @@ static void postavi_prepreke(int tip)
                     p.y = 0.75;
                 }
 
-                p.x = positions[pos];
+                p.x = x_koordinate_slobodnih_pozicija[pos];
                 if (tip == 1)
                 {
                     p.z = z_plane + 50 - i * 10;
@@ -443,23 +487,23 @@ static void postavi_prepreke(int tip)
 
 /*Funkcija koja se poziva samo na pocetku igrice,
  * vrsi pocetno iscrtavanje prepreka na drugi deo ravni 1. */
-static void postavi_prvu_ravan()
+static void postavi_prepreke_na_pocetku()
 {
     for (int i = 0; i <= 2; i++)
     {
-        int num = (int)rand() % 5;
-        if (num < 4)
-            num++;
+        int broj_prepreka = (int)rand() % 5;
+        if (broj_prepreka < 4)
+            broj_prepreka++;
         int dijamant = 0;
-        int free_positions[] = {0, 0, 0, 0, 0};
-        for (int j = 0; j < num; j++)
+        int slobodne_pozicije[] = {0, 0, 0, 0, 0};
+        for (int j = 0; j < broj_prepreka; j++)
         {
             Prepreka o;
-            int positions[] = {4, 2, 0, -2, -4};
+            int x_koordinate_slobodnih_pozicija[] = {4, 2, 0, -2, -4};
             int pos = (int)rand() % 5;
-            if (free_positions[pos] == 0)
+            if (slobodne_pozicije[pos] == 0)
             {
-                free_positions[pos] = 1;
+                slobodne_pozicije[pos] = 1;
                 int t = (int)rand() % 2;
                 if (t == 0 && !dijamant)
                 {
@@ -472,7 +516,7 @@ static void postavi_prvu_ravan()
                     o.tip = 1;
                     o.y = 0.75;
                 }
-                o.x = positions[pos];
+                o.x = x_koordinate_slobodnih_pozicija[pos];
                 o.z = z_plane + 50 - i * 20;
                 prepreke_1[poz1++] = o;
             }
@@ -480,3 +524,106 @@ static void postavi_prvu_ravan()
     }
 }
 
+/*Funkcija koja racuna rastojanje izmedju lopte i prepreke. */
+static float rastojanje_lopta_prepreka(Prepreka p){
+    
+    float x = (p.x - x_coord) * (p.x - x_coord);
+    float y = (p.y - y_coord) * (p.y - y_coord);
+    float z = (p.z - z_coord) * (p.z - z_coord);
+
+
+    return sqrt(x + y + z);
+    
+}
+
+/*Funkcija koja racuna presek izmedju lopte i prepreke. */
+static void upit_preseka()
+{
+    /* Ako smo na prvoj ravni, ispitujemo  preseke tj. kolizije. */
+    if (z_plane < z_plane2)
+    {
+        for (int i = 0; i < poz1; i++)
+        {
+            Prepreka p = prepreke_1[i];
+            if (rastojanje_lopta_prepreka(p) < 1.22)
+            {
+                /* Ako je dijamat, uvecava se skor za 1. */
+                if (prepreke_1[i].tip == 0)
+                {
+                   score += 1;
+                   /* Sklanjam dijamant da izgleda kao da se stopio sa loptom. */
+                   prepreke_1[i].x = -100;
+                   printf("%d\n", score);
+                }
+                /* Ako je presek pozitivan, kraj igre. */
+                else if (prepreke_1[i].tip == 1)
+                {
+                    end = 1;
+                    printf("Doslo je do sudara!\n");
+                    exit(1);
+            }
+        }
+    }
+  }
+    /* Analogno ispitujem preseke na ravni 2. */
+    else
+    {
+        for (int i = 0; i < poz2; i++)
+        {
+            Prepreka p = prepreke_2[i];
+            if (rastojanje_lopta_prepreka(p) < 1.22)
+            {
+                if (prepreke_2[i].tip == 0)
+                {
+                    score += 1;
+                    prepreke_2[i].x = -100;
+                    printf("%d\n", score);
+
+                }
+                else if (prepreke_2[i].tip == 1)
+                {
+                    end = 1;
+                    printf("Doslo je do sudara!\n");
+                    exit(1);
+                }
+            }
+        }
+    }
+}
+
+/* Funkcija za inicijalizaciju vrednosti pri restartovanju igrice. */
+static void postavi_pocetne_vrednosti(){
+    
+        restart = 0;
+        start = 0;
+        end = 0;
+        
+        ugao = 0;
+        brzina_lopte = 0.35;
+        faktor_ubrzanja = 1.0001;
+        
+        ulevo = 0 ;
+        udesno = 0;
+        
+        prva_prepreka = 1;
+        
+        x_plane = 10;
+        y_plane = 1;
+        z_plane = 50;
+        x_plane2 = 10;
+        y_plane2 = 1;
+        z_plane2 = 150;
+
+        duzina_staze = 100;
+
+        x_coord = 0;
+        y_coord = 0.75;
+        z_coord = 5;
+        
+        ugao_rotacije = 0;
+        
+        score = 0;
+        
+        poz1 = 0;
+        poz2 = 0;
+}

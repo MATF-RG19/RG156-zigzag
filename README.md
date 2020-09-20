@@ -8,7 +8,8 @@ Loptica vremenom ubrzava, a prepreke je sve teže izbeći.
 <kbd>A</kbd> kretanje ulevo <br>
 <kbd>S</kbd> startovanje igrice <br>
 <kbd>D</kbd> kretanje udesno <br>
-<kbd>R</kbd> resetovanje igre <br>
+<kbd>R</kbd> restartovanje igre <br>
+<kbd>P</kbd> pauziranje igre <br>
 <kbd>ESC</kbd> izlaz iz igre 
 
 ### :wrench: Instalacija i pokretanje:
