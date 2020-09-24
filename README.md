@@ -17,3 +17,6 @@ Loptica vremenom ubrzava, a prepreke je sve teže izbeći.
 * Pozicionirajte se u direktorijum `RG156-zigzag/src` <br>
 * Pokrenite Makefile `make` <br>
 * Pokrenite igricu komandom `./zig_zag` 
+
+### :book: Neophodne biblioteke za pokretanje:
+- Biblioteka: `<GL/glut.h>` 
