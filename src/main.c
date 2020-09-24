@@ -261,13 +261,13 @@ static void on_release(unsigned char key, int x, int y){
     }
 }
 
-/* Funkcija koja crta 2 ravni po kojima ide lopta, kao i ravni sa njihove strane. */
+/* Funkcija koja crta 2 ravni po kojima ide lopta, kao i ravni sa njihove obe strane. */
 static void nacrtaj_ravan(){
     
     /* Postavljanje prve ravni. */
     glPushMatrix();
     
-    /*Dodavanje tekstura na prvu ravan. */
+    /* Dodavanje tekstura na prvu ravan. */
     glBindTexture(GL_TEXTURE_2D, names[0]);
     glEnable(GL_TEXTURE_2D);
     
@@ -294,7 +294,7 @@ static void nacrtaj_ravan(){
     /* Postavljanje druge ravni. */
     glPushMatrix();
     
-    /*Dodavanje teksture na drugu ravan. */
+    /* Dodavanje teksture na drugu ravan. */
     glBindTexture(GL_TEXTURE_2D, names[0]);
     glEnable(GL_TEXTURE_2D);
     glBegin(GL_QUAD_STRIP);
@@ -315,7 +315,7 @@ static void nacrtaj_ravan(){
     glDisable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, 0);
     
-    // Prva ravan desno od glavne i njene teksture. */
+    /* Prva ravan desno od glavne i njene teksture. */
     glPushMatrix();
     glBindTexture(GL_TEXTURE_2D, names[1]);
     glEnable(GL_TEXTURE_2D);
@@ -342,7 +342,7 @@ static void nacrtaj_ravan(){
     glBindTexture(GL_TEXTURE_2D, 0);
     glPopMatrix();
     
-    /*Druga ravan desno od glavne i njene teksture. */
+    /* Druga ravan desno od glavne i njene teksture. */
     glPushMatrix();
     glBindTexture(GL_TEXTURE_2D, names[1]);
     glEnable(GL_TEXTURE_2D);
@@ -534,7 +534,7 @@ static void move_objects(int id)
 }
 }
 
-/*Iscrtavanje prepreka. */
+/* Iscrtavanje prepreka. */
 static void nacrtaj_prepreke(int tip)
 {
     int broj_prepreka;
@@ -584,7 +584,7 @@ static void nacrtaj_prepreke(int tip)
     }
 }
 
-/*Postavljanje koordinata prepreka. */
+/* Postavljanje koordinata prepreka. */
 static void postavi_prepreke(int tip)
 {
     if (tip == 1)
@@ -645,7 +645,7 @@ static void postavi_prepreke(int tip)
     }
 }
 
-/*Funkcija koja se poziva samo na pocetku igrice,
+/* Funkcija koja se poziva samo na pocetku igrice,
  * vrsi pocetno iscrtavanje prepreka na drugi deo ravni 1. */
 static void postavi_prepreke_na_pocetku()
 {
@@ -686,7 +686,7 @@ static void postavi_prepreke_na_pocetku()
     }
 }
 
-/*Funkcija koja racuna rastojanje izmedju lopte i prepreke. */
+/* Funkcija koja racuna rastojanje izmedju lopte i prepreke. */
 static float rastojanje_lopta_prepreka(Prepreka p){
     
     float x = (p.x - x_coord) * (p.x - x_coord);
@@ -698,7 +698,7 @@ static float rastojanje_lopta_prepreka(Prepreka p){
     
 }
 
-/*Funkcija koja racuna presek izmedju lopte i prepreke. */
+/* Funkcija koja racuna presek izmedju lopte i prepreke. */
 static void upit_preseka()
 {
     /* Ako smo na prvoj ravni, ispitujemo  preseke tj. kolizije. */
