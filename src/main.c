@@ -257,7 +257,7 @@ static void on_release(unsigned char key, int x, int y){
     }
 }
 
-/* Funkcija koja crta 2 ravni po kojima ide lopta, kao i ravni sa njihove obe strane. */
+/* Funkcija koja crta 2 ravni po kojima ide lopta, kao i ravni sa njihove obe  strane. */
 static void nacrtaj_ravan(){
     
     /* Postavljanje prve ravni. */
@@ -925,6 +925,6 @@ void game_over(){
     glEnable(GL_TEXTURE_2D);
     glEnable(GL_LIGHTING);
 
-
+    
     glutSwapBuffers();
 }
