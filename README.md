@@ -20,4 +20,4 @@ Loptica vremenom ubrzava, a prepreke je sve teže izbeći.
 
 ### :book: Neophodne biblioteke za pokretanje:
 - Biblioteka: `<GL/glut.h>` 
-- Instalacija: 'sudo apt-get install freeglut3-dev'
+- Instalacija: `sudo apt-get install freeglut3-dev`
