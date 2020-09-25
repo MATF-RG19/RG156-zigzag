@@ -5,14 +5,17 @@
 #include <time.h>
 #include <math.h>
 #include "image.h"
+#include "lopta.h"
+#include "bitmap_functions.h"
 #define TIMER_ID 0
 
 /* Makroi za imena fajlova sa teksturama. */
 #define ZID "../Teksture/zid.bmp"
 #define VODA "../Teksture/voda.bmp"
+#define START_GAME "../Teksture/start_game.bmp"
 
 /* Identifikatori tekstura. */
-static GLuint names[2];
+static GLuint names[3];
 
 /* Struktura koja predstavlja jednu prepreku. */ 
 typedef struct
@@ -33,7 +36,6 @@ static int poz2;
 
 /* Identifikatori pocetka i kraja igrice, kao i identifikator za restartovanje. */ 
 static int start = 0;
-static int end = 0;
 static int restart = 0;
 
 /* Pomocne vrednosti prilikom kretanja loptice. */
@@ -68,23 +70,11 @@ static float z_coord_right_second = 150;
 /* Duzina staze. */
 static float duzina_staze = 100;
 
-/* Koordinate loptice. */
-static float x_coord = 0;
-static float y_coord = 0.75;
-static float z_coord = 5;
-
-/*Ugao za koji se rotira loptica. */
-float ugao_rotacije = 0;
-
-/* Tekuci skor.*/
+/* Tekuci skor. */
 static int score = 0;
-
-/* Faktor ubrzanja loptice. */
-static float faktor_ubrzanja = 1.0005;
 
 /* Pomocne funkcije za iscrtavanje delova scene. */
 static void nacrtaj_ravan();
-static void nacrtaj_loptu();
 static void nacrtaj_prepreke(int tip);
 static void postavi_prepreke(int tip);
 static void postavi_prepreke_na_pocetku();
@@ -102,6 +92,9 @@ static void postavi_teksture();
 /* Funkcija koja prikazuje tekuci rezultat. */
 static void  prikazi_tekuci_rezultat();
 
+/* Funkcije za postavaljanje ekrana na pocetku i kraju igrice. */
+void start_game();
+void game_over();
 
 int main(int argc, char **argv)
 {
@@ -110,7 +103,7 @@ int main(int argc, char **argv)
     glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH);
 
     /* Kreira se prozor. */
-    glutInitWindowSize(1100, 800);
+    glutInitWindowSize(1100, 700);
     glutInitWindowPosition(100, 100);
     glutCreateWindow("Zig Zag");
     
@@ -120,10 +113,11 @@ int main(int argc, char **argv)
     postavi_teksture();
     
     /* Registruju se callback funkcije. */    
-    glutDisplayFunc(on_display);
     glutKeyboardFunc(on_keyboard);
     glutReshapeFunc(on_reshape);
     glutKeyboardUpFunc(on_release);
+    glutDisplayFunc(start_game);
+    
     
     /* Obavlja se OpenGL inicijalizacija. */
     glClearColor(0, 0, 0.2, 0);
@@ -191,11 +185,13 @@ static void on_display(void)
     nacrtaj_prepreke(1);
     nacrtaj_prepreke(2);
     }
+    
     /* Nova slika se salje na ekran. */
     glutSwapBuffers();
 }
 
 static void on_keyboard(unsigned char key, int x, int y){
+    
     switch (key)
     {
     case 27:
@@ -205,7 +201,7 @@ static void on_keyboard(unsigned char key, int x, int y){
     case 'S':
     case 's':
         /* Igra se startuje. */
-        if (!start && !end)
+        if (!start)
         {
             /* Podesava se pozadina i poziva se on_display funkcija. */
             glClearColor(0, 0, 0.2, 0);
@@ -421,23 +417,6 @@ static void nacrtaj_ravan(){
     glPopMatrix();
 
 }
-/* Funkcija koja iscrtava loptu. */
-static void nacrtaj_loptu(){
-    
-    /* Osvetljenje za loptu. */ 
-    GLfloat material_diffuse[] = {0.3, 0.8, 0.8, 1};
-    GLfloat material_ambient[] = { 1.0, 0.1, 0.1, 1 };
-    GLfloat material_specular[] = { 0.1 , 0.1,0.1, 0.5 };
-    
-    glMaterialfv(GL_FRONT, GL_AMBIENT, material_ambient);
-    glMaterialfv(GL_FRONT, GL_SPECULAR, material_specular);    
-    glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, material_diffuse);
-    
-    glPushMatrix();
-    glTranslatef(x_coord, y_coord + 1.6, z_coord);
-    glutSolidSphere(0.5, 100, 100);
-    glPopMatrix();
-}
 
 /*Pomeranje objekta se vrsi tako sto ne pomeramo objekat vec samu stazu 
  * sa preprekama ka objektu. */
@@ -480,13 +459,13 @@ static void move_objects(int id)
 
     /* Sprecavam da lopta sleti sa staze. */
      if (ulevo && x_coord < 4.5)
-        x_coord += 0.2;
+        x_coord += 0.25;
     
     if (udesno && x_coord > -4.5)
-        x_coord -= 0.2;
+        x_coord -= 0.25;    
 
     
-    /*Pocetak jedne ravni nadovezujemo na kraj druge, i tako sve u krug.*/
+    /* Pocetak jedne ravni nadovezujemo na kraj druge, i tako sve u krug. */
     if (z_plane + 50 <= 0)
     {
         z_plane = 149;
@@ -529,7 +508,7 @@ static void move_objects(int id)
     
     /* Ponovo se iscrtava ekran. */
     glutPostRedisplay();
-    if (start && !end)
+    if (start)
         glutTimerFunc(50, move_objects, 0);
 }
 }
@@ -556,7 +535,7 @@ static void nacrtaj_prepreke(int tip)
         GLfloat material_ambient[] = {0.22, 0.15, 0.05, 1.0};
         GLfloat material_diffuse[] = {0.7, 0.45, 0.2, 1.0};
         GLfloat material_specular[] = {0.4, 0.3, 0.15, 1.0};
-        GLfloat shininess = 0.15;
+        GLfloat shininess = 0.5;
 
         glMaterialfv(GL_FRONT, GL_AMBIENT, material_ambient);
         glMaterialfv(GL_FRONT, GL_DIFFUSE, material_diffuse);
@@ -715,14 +694,14 @@ static void upit_preseka()
                    score += 1;
                    /* Sklanjam dijamant da izgleda kao da se stopio sa loptom. */
                    prepreke_1[i].x = -100;
-                   printf("%d\n", score);
                 }
                 /* Ako je presek pozitivan, kraj igre. */
                 else if (prepreke_1[i].tip == 1)
                 {
-                    end = 1;
-                    printf("Doslo je do sudara!\n");
-                    exit(1);
+                    start = 0;
+                    glutDisplayFunc(game_over);
+                    postavi_pocetne_vrednosti();
+                    glutPostRedisplay();
             }
         }
     }
@@ -739,14 +718,14 @@ static void upit_preseka()
                 {
                     score += 1;
                     prepreke_2[i].x = -100;
-                    printf("%d\n", score);
 
                 }
                 else if (prepreke_2[i].tip == 1)
                 {
-                    end = 1;
-                    printf("Doslo je do sudara!\n");
-                    exit(1);
+                    start = 0;
+                    glutDisplayFunc(game_over);
+                    postavi_pocetne_vrednosti();
+                    glutPostRedisplay();
                 }
             }
         }
@@ -758,7 +737,6 @@ static void postavi_pocetne_vrednosti(){
     
         restart = 0;
         start = 0;
-        end = 0;
         
         brzina_lopte = 0.35;
         faktor_ubrzanja = 1.0005;;
@@ -809,7 +787,7 @@ static void postavi_teksture()
     image = image_init(0, 0);
 
     /* Generisu se identifikatori tekstura. */
-    glGenTextures(4, names);
+    glGenTextures(3, names);
     
     /* Kreira se prva tekstura. */
     image_read(image, ZID);
@@ -844,7 +822,23 @@ static void postavi_teksture()
                  image->width, image->height, 0,
                  GL_RGB, GL_UNSIGNED_BYTE, image->pixels);
     
+    /* Kreira se treca tekstura. */
+    image_read(image, START_GAME);
 
+    glBindTexture(GL_TEXTURE_2D, names[2]);
+    glTexParameteri(GL_TEXTURE_2D,
+                    GL_TEXTURE_WRAP_S, GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_2D,
+                    GL_TEXTURE_WRAP_T, GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_2D,
+                    GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D,
+                    GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
+                 image->width, image->height, 0,
+                 GL_RGB, GL_UNSIGNED_BYTE, image->pixels);    
+        
+    
     /* Iskljucujemo aktivnu teksturu */
     glBindTexture(GL_TEXTURE_2D, 0);
 
@@ -859,18 +853,78 @@ static void prikazi_tekuci_rezultat(){
     /* Karakterske promenljive za rasterizaciju rezultata. */
     char vrednost_na_ekranu[25] = "SCORE: ";
     char rezultat[25];
-    
-    /* Koordinate od kojih pocinjem rasterizaciju. */
-    glRasterPos3f(x_coord -3, y_coord + 5, 5);
-    
-    
+        
     sprintf(rezultat, " %d ", score);
     strcat(vrednost_na_ekranu, rezultat);
 
-    int n = (int)strlen(vrednost_na_ekranu);
-        
-    for (int i = 0; i < n; i++)
-    {
-        glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, vrednost_na_ekranu[i]);
-    }   
+    bitmap_output_1(x_coord-3,y_coord+5,5,vrednost_na_ekranu,GLUT_BITMAP_TIMES_ROMAN_24);
+
+}
+
+/* Funkcija koja postavlja teksturu  na pocetku igre. */
+void start_game(void)
+{
+    glClearColor(0, 0, 0, 0);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    gluLookAt(0, 2, 0,
+              0, 0, 0,
+              1, 0, 0);
+
+    GLfloat light_position[] = {0, 0, 0, 1};
+    glLightfv(GL_LIGHT0, GL_POSITION, light_position);
+    glEnable(GL_LIGHT0);
+
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, names[2]);
+    glBegin(GL_QUADS);
+    glNormal3f(0, 1, 0);
+
+    glTexCoord2f(0, 0);
+    glVertex3f(-1, 0, -1);
+
+    glTexCoord2f(0, 1);
+    glVertex3f(1, 0, -1);
+
+    glTexCoord2f(1, 1);
+    glVertex3f(1, 0, 1);
+
+    glTexCoord2f(1, 0);
+    glVertex3f(-1, 0, 1);
+    glEnd();
+
+    glDisable(GL_TEXTURE_2D);
+    glutSwapBuffers();
+}
+
+/* Funkcija koja posatavlja tekst na ekran na kraju igre. */
+void game_over(){
+
+
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    gluLookAt(0, 0, 5,
+              0, 0, 0,
+              0, 1, 0);
+
+
+    glDisable(GL_LIGHTING);
+    glColor3f(1, 0, 0);
+    bitmap_output(-1, 0.5, " GAME OVER ", GLUT_BITMAP_TIMES_ROMAN_24);
+
+    glColor3f(0.8, 0.8, 0.8);
+    bitmap_output(-4.9, 2.5, " Press - s - to start   ", GLUT_BITMAP_TIMES_ROMAN_24);
+    bitmap_output(-4.9, 2.3, " Press - a - to go left ", GLUT_BITMAP_TIMES_ROMAN_24);
+    bitmap_output(-4.9, 2.1, " Press - d- to go right ", GLUT_BITMAP_TIMES_ROMAN_24);
+    bitmap_output(-4.9, -2.2, " Press - esc - for exit ", GLUT_BITMAP_TIMES_ROMAN_24);
+    bitmap_output(-4.9, -2.4, " Press - p - to pause the game ", GLUT_BITMAP_TIMES_ROMAN_24);
+    bitmap_output(-4.9, -2.6, " Press - r - to restart the game ", GLUT_BITMAP_TIMES_ROMAN_24);
+
+    glEnable(GL_TEXTURE_2D);
+    glEnable(GL_LIGHTING);
+
+
+    glutSwapBuffers();
 }

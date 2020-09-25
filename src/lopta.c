@@ -1,7 +1,6 @@
 #include "lopta.h"
 
 
-
 /* Koordinate loptice. */
 float x_coord = 0;
 float y_coord = 0.75;
@@ -11,7 +10,7 @@ float z_coord = 5;
 float ugao_rotacije = 0;
 
 /* Faktor ubrzanja loptice. */
-float faktor_ubrzanja = 1.001;
+float faktor_ubrzanja = 1.0005;
 
 
 /* Funkcija koja iscrtava loptu. */
@@ -20,7 +19,7 @@ void nacrtaj_loptu(){
     /* Osvetljenje za loptu. */ 
     GLfloat material_diffuse[] = {0.3, 0.8, 0.8, 1};
     GLfloat material_ambient[] = { 1.0, 0.1, 0.1, 1 };
-    GLfloat material_specular[] = { 0.1 , 0.1,0.1, 0.5 };
+    GLfloat material_specular[] = { 0.01 , 0.01,0.01, 0.01 };
     
     glMaterialfv(GL_FRONT, GL_AMBIENT, material_ambient);
     glMaterialfv(GL_FRONT, GL_SPECULAR, material_specular);    
